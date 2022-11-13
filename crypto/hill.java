@@ -1,226 +1,196 @@
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class hill {
-    static String alphabet = "abcdefghijklmnopqrstuvwxyz";
-
-    public static int check(int a) {
-        while (a < 0)
-            a += 26;
-        return a;
-    }
-
-    public static int[][] multiply(int r, int nc, int a[][], int b[][]) {
-        int c[][] = new int[r][nc];
-        for (int i = 0; i < r; i++)
-            for (int j = 0; j < nc; j++) {
-                c[i][j] = 0;
-                for (int k = 0; k < r; k++) {
-                    c[i][j] += (a[i][k] * b[k][j]);
-                }
-                c[i][j] %= 26;
-                while (c[i][j] < 0)
-                    c[i][j] += 26;
-            }
-        return c;
-    }
-
-    public static int gcd(int a, int b) {
-        if (b == 0)
-            return a;
-        return gcd(b, a % b);
-    }
-
-    public static int inverse(int a) {
-        int q, r1 = 26, r2 = a, r, t1 = 0, t2 = 1, t;
-        while (r2 > 0) {
-            q = r1 / r2;
-            r = r1 % r2;
-            t = t1 - q * t2;
-            t1 = t2;
-            t2 = t;
-            r1 = r2;
-            r2 = r;
-        }
-        if (t1 < 0)
-            t1 = t1 + 26;
-        return t1;
-    }
-
-    public static void main(String[] args) {
+    // method to accept key matrix
+    private static int[][] getKeyMatrix() {
         Scanner sc = new Scanner(System.in);
-        String plaintext, encrypt, decrypt;
-        System.out.println("Enter the plaintext to be encrypted:");
-        plaintext = sc.nextLine();
-        encrypt = "";
-        decrypt = "";
-        int r = 0, c = 0, kd = 0, ch = 1;
-        while (ch == 1) {
-            System.out.println("Enter the row and column of key matrix:");
-            r = sc.nextInt();
-            c = sc.nextInt();
-            if ((r == 2 && c == 2) || (r == 3 && c == 3))
-                ch = 0;
-            else
-                System.out.println("Enter the valid row and column");
+        System.out.println("Enter key matrix:");
+        String key = sc.nextLine();
+        // int len = key.length();
+        double sq = Math.sqrt(key.length());
+        if (sq != (long) sq) {
+            System.out.println("Cannot Form a square matrix");
         }
-        int k[][], ki[][], kdi;
-        if (r == 2)
-            k = new int[2][2];
-        else
-            k = new int[3][3];
-        ch = 1;
-        while (ch == 1) {
-            if (r == 2 && c == 2) {
-
-                System.out.println("Enter the key matrix:(0-25)");
-                for (int i = 0; i < r; i++)
-                    for (int j = 0; j < c; j++)
-                        k[i][j] = sc.nextInt();
-                kd = (k[0][0] * k[1][1]) - (k[0][1] * k[1][0]);
-                kd %= 26;
-                while (kd < 0)
-                    kd += 26;
-                // System.out.println("d: "+kd);
-
-                if (gcd(kd, 26) == 1)
-                    ch = 0;
-                else
-                    System.out.println("Enter a valid key matrix");
-            } else if (r == 3 && c == 3) {
-                System.out.println("Enter the key matrix:(0-25)");
-                for (int i = 0; i < r; i++)
-                    for (int j = 0; j < c; j++)
-                        k[i][j] = sc.nextInt();
-                kd = (k[0][0] * k[1][1] * k[2][2]) - (k[0][0] * k[1][2] * k[2][1]) + (k[0][1] * k[1][2] * k[2][0])
-                        - (k[0][1] * k[1][0] * k[2][2]) + (k[0][2] * k[1][0] * k[2][1]) - (k[0][2] * k[1][1] * k[2][0]);
-                kd %= 26;
-                while (kd < 0)
-                    kd += 26;
-                if (gcd(kd, 26) == 1)
-                    ch = 0;
-                else
-                    System.out.println("Enter a valid key matrix");
-                // System.out.println("d:"+kd);
-                // System.out.println("d:"+(kd%26));
+        int len = (int) sq;
+        int[][] keyMatrix = new int[len][len];
+        int k = 0;
+        for (int i = 0; i < len; i++) {
+            for (int j = 0; j < len; j++) {
+                keyMatrix[i][j] = ((int) key.charAt(k)) - 97;
+                k++;
             }
         }
-        int p[][], e[][], d[][];
-        if (r == 2 && c == 2) {
-            int nc;
-            if (plaintext.length() % 2 == 0) {
-                nc = plaintext.length() / 2;
-                p = new int[2][nc];
-            } else {
-                nc = plaintext.length() / 2 + 1;
-                p = new int[2][nc];
+        return keyMatrix;
+    }
+
+    // Below method checks whether the key matrix is valid (det=0)
+    private static void isValidMatrix(int[][] keyMatrix) {
+        int det = keyMatrix[0][0] * keyMatrix[1][1] - keyMatrix[0][1] * keyMatrix[1][0];
+        // If det=0, throw exception and terminate
+        if (det == 0) {
+            throw new java.lang.Error("Det equals to zero, invalid key matrix!");
+        }
+    }
+
+    // This method checks if the reverse key matrix is valid (matrix mod26 =
+    // (1,0,0,1)
+    private static void isValidReverseMatrix(int[][] keyMatrix, int[][] reverseMatrix) {
+        int[][] product = new int[2][2];
+        // Find the product matrix of key matrix times reverse key matrix
+        product[0][0] = (keyMatrix[0][0] * reverseMatrix[0][0] + keyMatrix[0][1] * reverseMatrix[1][0]) % 26;
+        product[0][1] = (keyMatrix[0][0] * reverseMatrix[0][1] + keyMatrix[0][1] * reverseMatrix[1][1]) % 26;
+        product[1][0] = (keyMatrix[1][0] * reverseMatrix[0][0] + keyMatrix[1][1] * reverseMatrix[1][0]) % 26;
+        product[1][1] = (keyMatrix[1][0] * reverseMatrix[0][1] + keyMatrix[1][1] * reverseMatrix[1][1]) % 26;
+        // Check if a=1 and b=0 and c=0 and d=1
+        // If not, throw exception and terminate
+        if (product[0][0] != 1 || product[0][1] != 0 || product[1][0] != 0 || product[1][1] != 1) {
+            throw new java.lang.Error("Invalid reverse matrix found!");
+        }
+    }
+
+    // This method calculates the reverse key matrix
+    private static int[][] reverseMatrix(int[][] keyMatrix) {
+        int detmod26 = (keyMatrix[0][0] * keyMatrix[1][1] - keyMatrix[0][1] * keyMatrix[1][0]) % 26; // Calc det
+        int factor;
+        int[][] reverseMatrix = new int[2][2];
+        // Find the factor for which is true that
+        // factor*det = 1 mod 26
+        for (factor = 1; factor < 26; factor++) {
+            if ((detmod26 * factor) % 26 == 1) {
+                break;
             }
-            // System.out.println(nc);
-            int l = 0;
-            for (int i = 0; i < nc; i++)
-                for (int j = 0; j < r; j++) {
-                    if (i == nc - 1 && j == r - 1 && (plaintext.length() % 2 == 1))
-                        p[j][i] = alphabet.indexOf('x');
-                    else
-                        p[j][i] = alphabet.indexOf(plaintext.charAt(l++));
-                    // System.out.print(p[j][i]+" ");
-                }
-            // System.out.println("\n");
-            e = new int[r][nc];
-            e = multiply(r, nc, k, p);
-            for (int i = 0; i < nc; i++)
-                for (int j = 0; j < r; j++) {
-                    encrypt += alphabet.charAt(e[j][i]);
-                }
-            System.out.println("Encrypted text: " + encrypt);
-            ki = new int[2][2];
-            kdi = inverse(kd);
-            // System.out.println("di: "+kdi);
-            ki[0][0] = kdi * k[1][1] % 26;
-            ki[1][1] = kdi * k[0][0] % 26;
-            ki[0][1] = kdi * (-k[0][1]) % 26;
-            ki[1][0] = kdi * (-k[1][0]) % 26;
-            d = new int[r][nc];
-            d = multiply(r, nc, ki, e);
-            for (int i = 0; i < nc; i++)
-                for (int j = 0; j < r; j++) {
-                    decrypt += alphabet.charAt(d[j][i]);
-                }
-            if (decrypt.charAt(decrypt.length() - 1) == 'x') {
-                int len = decrypt.length();
-                char[] temp = decrypt.toCharArray();
-                decrypt = "";
-                for (int i = 0; i < len - 1; i++)
-                    decrypt += temp[i];
+        }
+        // Calculate the reverse key matrix elements using the factor found
+        reverseMatrix[0][0] = keyMatrix[1][1] * factor % 26;
+        reverseMatrix[0][1] = (26 - keyMatrix[0][1]) * factor % 26;
+        reverseMatrix[1][0] = (26 - keyMatrix[1][0]) * factor % 26;
+        reverseMatrix[1][1] = keyMatrix[0][0] * factor % 26;
+        return reverseMatrix;
+    }
+
+    // This method echoes the result of encrypt/decrypt
+    private static void echoResult(String label, int adder, ArrayList<Integer> phrase) {
+        int i;
+        System.out.print(label);
+        // Loop for each pair
+        for (i = 0; i < phrase.size(); i += 2) {
+            System.out.print(Character.toChars(phrase.get(i) + (64 + adder)));
+            System.out.print(Character.toChars(phrase.get(i + 1) + (64 + adder)));
+            if (i + 2 < phrase.size()) {
+                System.out.print("-");
             }
-            System.out.println("Decrypted text: " + decrypt);
-        } else if (r == 3 && c == 3) {
-            int nc;
-            if (plaintext.length() % 3 == 0) {
-                nc = plaintext.length() / 3;
-                p = new int[3][nc];
-            } else {
-                nc = plaintext.length() / 3 + 1;
-                p = new int[3][nc];
-            }
-            // System.out.println(nc);
-            int l = 0;
-            for (int i = 0; i < nc; i++)
-                for (int j = 0; j < r; j++) {
-                    // System.out.println("i:"+i+" j:"+j);
-                    if (i == nc - 1 && j == r - 1 && ((plaintext.length() % 3 == 2) || (plaintext.length() % 3 == 1)))
-                        p[j][i] = alphabet.indexOf('x');
-                    else if (i == nc - 1 && j == r - 2 && (plaintext.length() % 3 == 1))
-                        p[j][i] = alphabet.indexOf('x');
-                    else
-                        p[j][i] = alphabet.indexOf(plaintext.charAt(l++));
-                    // System.out.print(p[j][i]+" ");
-                }
-            // System.out.println("\n");
-            e = new int[r][nc];
-            e = multiply(r, nc, k, p);
-            for (int i = 0; i < nc; i++)
-                for (int j = 0; j < r; j++) {
-                    encrypt += alphabet.charAt(e[j][i]);
-                }
-            System.out.println("Encrypted text: " + encrypt);
-            ki = new int[3][3];
-            kdi = inverse(kd);
-            // System.out.println("di: "+kdi);
-            ki[0][0] = kdi * ((k[1][1] * k[2][2]) - (k[1][2] * k[2][1])) % 26;
-            ki[0][1] = kdi * ((k[0][2] * k[2][1]) - (k[0][1] * k[2][2])) % 26;
-            ki[0][2] = kdi * ((k[0][1] * k[1][2]) - (k[0][2] * k[1][1])) % 26;
-            ki[1][0] = kdi * ((k[1][2] * k[2][0]) - (k[1][0] * k[2][2])) % 26;
-            ki[1][1] = kdi * ((k[0][0] * k[2][2]) - (k[0][2] * k[2][0])) % 26;
-            ki[1][2] = kdi * ((k[0][2] * k[1][0]) - (k[0][0] * k[1][2])) % 26;
-            ki[2][0] = kdi * ((k[1][0] * k[2][1]) - (k[1][1] * k[2][0])) % 26;
-            ki[2][1] = kdi * ((k[0][1] * k[2][0]) - (k[0][0] * k[2][1])) % 26;
-            ki[2][2] = kdi * ((k[0][0] * k[1][1]) - (k[0][1] * k[1][0])) % 26;
-            for (int i = 0; i < 3; i++)
-                for (int j = 0; j < 3; j++) {
-                    if (ki[i][j] < 0)
-                        ki[i][j] = check(ki[i][j]);
-                    // System.out.print(ki[i][j]+" ");
-                }
-            d = new int[r][nc];
-            d = multiply(r, nc, ki, e);
-            for (int i = 0; i < nc; i++)
-                for (int j = 0; j < r; j++) {
-                    decrypt += alphabet.charAt(d[j][i]);
-                }
-            if (decrypt.charAt(decrypt.length() - 1) == 'x') {
-                int len = decrypt.length();
-                char[] temp = decrypt.toCharArray();
-                if (decrypt.charAt(decrypt.length() - 2) == 'x') {
-                    decrypt = "";
-                    for (int i = 0; i < len - 2; i++)
-                        decrypt += temp[i];
-                } else {
-                    decrypt = "";
-                    for (int i = 0; i < len - 1; i++)
-                        decrypt += temp[i];
-                }
-            }
-            System.out.println("Decrypted text: " + decrypt);
+        }
+        System.out.println();
+    }
+
+    // This method makes the actual encryption
+    public static void encrypt(String phrase, boolean alphaZero) {
+        int i;
+        int adder = alphaZero ? 1 : 0; // For calclulations depending on the alphabet
+        int[][] keyMatrix;
+        ArrayList<Integer> phraseToNum = new ArrayList<>();
+        ArrayList<Integer> phraseEncoded = new ArrayList<>();
+        // Delete all non-english characters, and convert phrase to upper case
+        phrase = phrase.replaceAll("[^a-zA-Z]", "").toUpperCase();
+
+        // If phrase length is not an even number, add "Q" to make it even
+        if (phrase.length() % 2 == 1) {
+            phrase += "Q";
+        }
+        // Get the 2x2 key matrix from sc
+        keyMatrix = getKeyMatrix();
+        // Check if the matrix is valid (det != 0)
+        isValidMatrix(keyMatrix);
+        // Convert characters to numbers according to their
+        // place in ASCII table minus 64 positions (A=65 in ASCII table)
+        // If we use A=0 alphabet, subtract one more (adder)
+        for (i = 0; i < phrase.length(); i++) {
+            phraseToNum.add(phrase.charAt(i) - (64 + adder));
+        }
+        // Find the product per pair of the phrase with the key matrix modulo 26
+        // If we use A=1 alphabet and result is 0, replace it with 26 (Z)
+        for (i = 0; i < phraseToNum.size(); i += 2) {
+            int x = (keyMatrix[0][0] * phraseToNum.get(i) + keyMatrix[0][1] * phraseToNum.get(i + 1)) % 26;
+            int y = (keyMatrix[1][0] * phraseToNum.get(i) + keyMatrix[1][1] * phraseToNum.get(i + 1)) % 26;
+            phraseEncoded.add(alphaZero ? x : (x == 0 ? 26 : x));
+            phraseEncoded.add(alphaZero ? y : (y == 0 ? 26 : y));
+        }
+        // Print the result
+        echoResult("Encoded phrase: ", adder, phraseEncoded);
+    }
+
+    // This method makes the actual decryption
+    public static void decrypt(String phrase, boolean alphaZero) {
+        int i, adder = alphaZero ? 1 : 0;
+        int[][] keyMatrix, revKeyMatrix;
+        ArrayList<Integer> phraseToNum = new ArrayList<>();
+        ArrayList<Integer> phraseDecoded = new ArrayList<>();
+        // Delete all non-english characters, and convert phrase to upper case
+        phrase = phrase.replaceAll("[^a-zA-Z]", "").toUpperCase();
+
+        // Get the 2x2 key matrix from sc
+        keyMatrix = getKeyMatrix();
+        // Check if the matrix is valid (det != 0)
+        isValidMatrix(keyMatrix);
+        // Convert numbers to characters according to their
+        // place in ASCII table minus 64 positions (A=65 in ASCII table)
+        // If we use A=0 alphabet, subtract one more (adder)
+        for (i = 0; i < phrase.length(); i++) {
+            phraseToNum.add(phrase.charAt(i) - (64 + adder));
+        }
+        // Find the reverse key matrix
+        revKeyMatrix = reverseMatrix(keyMatrix);
+        // Check if the reverse key matrix is valid (product = 1,0,0,1)
+        isValidReverseMatrix(keyMatrix, revKeyMatrix);
+        // Find the product per pair of the phrase with the reverse key matrix modulo 26
+        for (i = 0; i < phraseToNum.size(); i += 2) {
+            phraseDecoded
+                    .add((revKeyMatrix[0][0] * phraseToNum.get(i) + revKeyMatrix[0][1] * phraseToNum.get(i + 1)) % 26);
+            phraseDecoded
+                    .add((revKeyMatrix[1][0] * phraseToNum.get(i) + revKeyMatrix[1][1] * phraseToNum.get(i + 1)) % 26);
+        }
+        // Print the result
+        echoResult("Decoded phrase: ", adder, phraseDecoded);
+    }
+
+    // main method
+    public static void main(String[] args) {
+        String opt, phrase;
+        byte[] p;
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Hill Cipher Implementation (2x2)");
+        System.out.println("-------------------------");
+        System.out.println("1. Encrypt text (A=0,B=1,...Z=25)");
+        System.out.println("2. Decrypt text (A=0,B=1,...Z=25)");
+        System.out.println("3. Encrypt text (A=1,B=2,...Z=26)");
+        System.out.println("4. Decrypt text (A=1,B=2,...Z=26)");
+        System.out.println();
+        System.out.println("Type any other character to exit");
+        System.out.println();
+        System.out.print("Select your choice: ");
+        opt = sc.nextLine();
+        switch (opt) {
+            case "1":
+                System.out.print("Enter phrase to encrypt: ");
+                phrase = sc.nextLine();
+                encrypt(phrase, true);
+                break;
+            case "2":
+                System.out.print("Enter phrase to decrypt: ");
+                phrase = sc.nextLine();
+                decrypt(phrase, true);
+                break;
+            case "3":
+                System.out.print("Enter phrase to encrypt: ");
+                phrase = sc.nextLine();
+                encrypt(phrase, false);
+                break;
+            case "4":
+                System.out.print("Enter phrase to decrypt: ");
+                phrase = sc.nextLine();
+                decrypt(phrase, false);
+                break;
         }
     }
 }
